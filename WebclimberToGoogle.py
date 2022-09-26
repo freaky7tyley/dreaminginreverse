@@ -36,28 +36,29 @@ myMail='florian.huber@kwpsoftware.de'
 url ='https://157.webclimber.de/de/courseBooking'
 teachers = []
 
-def EventExists(service,summary):
+def EventExists(service,summary,id):
     now = datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
-    events_result = service.events().list(calendarId='primary', timeMin=now, maxResults=10, singleEvents=True, orderBy='startTime').execute()
-    #events_result = service.events().list(calendarId='primary', timeMin=datetime.now().isoformat(), singleEvents=True, orderBy='startTime').execute()
+    tMax=datetime.utcnow().replace(month=datetime.now().month+3).isoformat()+ 'Z' 
+    
+    events_result = service.events().list(calendarId='primary', timeMin=now, timeMax=tMax, singleEvents=True, orderBy='startTime').execute()
     events = events_result.get('items', [])
-
+    
+    found = False
     if not events:
         print('Event does not exist yet.')
     else:
-        found = False
         for event in events:
-             
-            if summary == event['summary']:
+            if summary == event['summary'] and id in event['description']:
                 found = True
                 print('Event has been found.')
                 break
         if found != True:
             print('Event does not exist yet.')
+    return found
 
 
 
-def insertEventToGoogleCalendar(calID,starttime,endtime,summary,location,description):
+def insertEventToGoogleCalendar(calID,starttime,endtime,summary,location,description,id):
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
@@ -78,16 +79,16 @@ def insertEventToGoogleCalendar(calID,starttime,endtime,summary,location,descrip
     
     try:
         service = build('calendar', 'v3', credentials=creds)
-        if EventExists(service,summary):
+        if EventExists(service,summary,id):
             return
         # Call the Calendar API
         print('Inserting event')
 
 
         event = {
-        'summary': summary,#'Google I/O 2015',
-        'location': location,#'800 Howard St., San Francisco, CA 94103',
-        'description': description,#'A chance to hear more about Google\'s developer products.',
+        'summary': summary,
+        'location': location,
+        'description': description+'\nKursnummer: '+id,
         'start': {
             'dateTime': starttime.isoformat(),#'2022-05-10T09:00:00-07:00',
             'timeZone': 'Europe/Berlin',
@@ -95,7 +96,7 @@ def insertEventToGoogleCalendar(calID,starttime,endtime,summary,location,descrip
         'end': {
             'dateTime': endtime.isoformat(),#str(endtime),#'2022-05-10T17:00:00-07:00',
             'timeZone': 'Europe/Berlin',
-        }#
+        },
         # 'attendees': [
         #     {'email': 'lpage@example.com'},
         #     {'email': 'sbrin@example.com'},
@@ -145,10 +146,10 @@ def build_event_duration(summary, description, start, duration, location, url):
     return event
 
     
-def AddToGoogleCalendar(calID,start,duration_hours,title,url):
+def AddToGoogleCalendar(calID,start,duration_hours,title,url,id):
     location="DAV Kletterzentrum Landshut, Ritter-von-Schoch Str.6, 84036 Landshut",
     end = start + timedelta(hours = duration_hours)
-    insertEventToGoogleCalendar(calID,start,end,title,location,url)
+    insertEventToGoogleCalendar(calID,start,end,title,location,url,id)
 
 
 def getSoup(url):
@@ -263,6 +264,6 @@ for courseType in courseTypes:
                         DurationHours = (int(hour_stop)-int(hour_start)) + (int(minute_stop)-int(minute_start))/60
                         cId=id+'_'+str(id_suffix)
                         print(cId,text,parsed_date,DurationHours,courseURL)
-                        AddToGoogleCalendar(myMail,parsed_date,DurationHours,text,courseURL)
+                        AddToGoogleCalendar(myMail,parsed_date,DurationHours,text,courseURL,id)
                         id_suffix=id_suffix+1
     print('--------------------------------------------------------------')
