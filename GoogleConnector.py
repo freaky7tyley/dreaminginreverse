@@ -61,42 +61,51 @@ class GoogleConnector:
 
 
     def _insertEventToGoogleCalendar(self,service,calID,starttime,endtime,summary,slots,url,id):
+        eventId=None
         try:
-            if self._EventExists(service,calID,summary,id):
-                return
+            eventId = self._getEventIdIfExists(service,calID,summary,id)
         except:
             pass
-        
         event = self._CreateCalEvent(starttime, endtime, summary, slots, url, id)
         
-        try:
-            print('Inserting event')
-            event = service.events().insert(calendarId=calID, body=event).execute()
-            print ('Event created: %s' % (event.get('htmlLink')))
+        if eventId is None:
+            try:
+                print('Inserting event')
+                event = service.events().insert(calendarId=calID, body=event).execute()
+                print ('Event created: %s' % (event.get('htmlLink')))
 
-        except HttpError as error:
-            print('An error occurred: %s' % error)
+            except HttpError as error:
+                print('An error occurred: %s' % error)
+        else:
+            try:
+                print('Updateing event')
+                event = service.events().update(calendarId=calID,  eventId=eventId, body=event).execute()
+                print ('Event created: %s' % (event.get('htmlLink')))
+
+            except HttpError as error:
+                print('An error occurred: %s' % error)
 
 
-    def _EventExists(self,service,calId,summary,id):
+    def _getEventIdIfExists(self,service,calId,summary,id):
         now = datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
         tMax=datetime.utcnow().replace(month=datetime.now().month+3).isoformat()+ 'Z' 
         
         events_result = service.events().list(calendarId=calId, timeMin=now, timeMax=tMax, singleEvents=True, orderBy='startTime').execute()
         events = events_result.get('items', [])
-        
-        found = False
+
         if not events:
             print('Event does not exist yet.')
+            return None
         else:
             for event in events:
                 if summary == event['summary'] and id in event['description']:
                     found = True
                     print('Event has been found.')
-                    break
-            if found != True:
-                print('Event does not exist yet.')
-        return found
+                    return event['id']
+
+        return None
+
+       
 
 
     def _CreateCalEvent(self,starttime, endtime, summary, slots, url, id):
