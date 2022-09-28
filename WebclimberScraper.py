@@ -1,19 +1,9 @@
 #!/usr/bin/env python 
 #-*- coding: utf-8 -*-
-from pprint import pprint
+
 from twill import browser
 from twill.commands import *
 from bs4 import BeautifulSoup
-
-import os
-from tqdm import tqdm
-
-from icalendar import Calendar, Event
-import  os
-from datetime import datetime, timedelta
-
-import os.path
-
 
 class WebclimberScraper:
     _url=None
@@ -62,6 +52,10 @@ class WebclimberScraper:
     def getTeacher(self,course):
         teacher = course[len(course)-3]
         return teacher
+
+    def getAvailableSlots(self,course):
+        slots = course[len(course)-2]
+        return slots
 
     def getDates(self,course):
         dates = course[1].split('\n')

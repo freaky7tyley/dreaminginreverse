@@ -16,7 +16,7 @@ myOauthClientSecretFile="client_secret.json"
 
 myGreiKalender="cocoburgh"
 
-heySiri= GoogleConnector(myOAuthPort,myOauthClientSecretFile,myGreiKalender)
+heySiri= GoogleConnector(myOAuthPort,myOauthClientSecretFile)
 davScraper= WebclimberScraper(url)
 
 soup = davScraper.getSoup()
@@ -37,8 +37,9 @@ for courseType in courseTypes:
     for course in courses:
         
         teacher= davScraper.getTeacher(course)
+        availableSlots=davScraper.getAvailableSlots(course)
         print(teacher)
-        if iAm == teacher:
+        if True:#iAm == teacher:
             dates=davScraper.getDates(course)
             print("Kurs: ",course,dates)
             id=course[0]
@@ -64,7 +65,7 @@ for courseType in courseTypes:
                         
                         print(cId,text,parsed_date,DurationHours,courseURL)
                     
-                        heySiri.AddGreiEventToCalendar(parsed_date,DurationHours,text,courseURL,cId)
+                        heySiri.AddGreiEventToCalendar(teacher,parsed_date,DurationHours,text,availableSlots,courseURL,cId)
                         
                         id_suffix=id_suffix+1
 
