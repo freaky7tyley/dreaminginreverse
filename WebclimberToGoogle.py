@@ -1,6 +1,7 @@
 #!/usr/bin/env python 
 #-*- coding: utf-8 -*-
 
+from calendar import calendar
 from twill.commands import *
 from datetime import datetime
 
@@ -9,12 +10,15 @@ from WebclimberScraper import WebclimberScraper
 
 url='https://157.webclimber.de/de/courseBooking'
 
-iAm = 'Simon R.'#Flo H.'
+iAm = None#'Simon R.'#Flo H.'
 # hashtag umleitungsuriport oderso
 myOAuthPort=8105
 myOauthClientSecretFile="client_secret.json"
 
-myGreiKalender="cocoburgh"
+myGreiKalender=None#"cocoburgh"
+
+if iAm is not None and myGreiKalender is None:
+    raise Exception('myGreiKalender ist nicht angegeben') 
 
 heySiri= GoogleConnector(myOAuthPort,myOauthClientSecretFile)
 davScraper= WebclimberScraper(url)
@@ -38,10 +42,10 @@ for courseType in courseTypes:
         
         teacher= davScraper.getTeacher(course)
         availableSlots=davScraper.getAvailableSlots(course)
-        print(teacher)
-        if True:#iAm == teacher:
+
+        if iAm is None or iAm == teacher:
             dates=davScraper.getDates(course)
-            print("Kurs: ",course,dates)
+            # print("Kurs: ",course,dates)
             id=course[0]
             id_suffix=0
             
@@ -62,10 +66,21 @@ for courseType in courseTypes:
                         parsed_date, DurationHours = davScraper.SetDateAndDurationHours(parsed_date, times)
                         
                         cId=id+'_'+str(id_suffix)
-                        
-                        print(cId,text,parsed_date,DurationHours,courseURL)
-                    
-                        heySiri.AddGreiEventToCalendar(teacher,parsed_date,DurationHours,text,availableSlots,courseURL,cId)
+                        print('Teacher: ',teacher)
+                        print('ID: ',cId)
+                        print('text: ',text)
+                        print('date: ',parsed_date)
+                        print('dur: ',DurationHours)
+                        print('slots: ',availableSlots)
+                        print('url: ',courseURL)
+
+                
+                        if iAm is None:
+                            calendarName=teacher
+                        else:
+                            calendarName=myGreiKalender
+
+                        heySiri.AddGreiEventToCalendar(calendarName,parsed_date,DurationHours,text,availableSlots,courseURL,cId)
                         
                         id_suffix=id_suffix+1
 

@@ -50,11 +50,11 @@ class WebclimberScraper:
         return courses
 
     def getTeacher(self,course):
-        teacher = course[len(course)-3]
+        teacher = course[2]#[len(course)-3]
         return teacher
 
     def getAvailableSlots(self,course):
-        slots = course[len(course)-2]
+        slots = course[3]#[len(course)-2]
         return slots
 
     def getDates(self,course):
