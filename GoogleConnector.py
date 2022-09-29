@@ -38,6 +38,24 @@ class GoogleConnector:
 
         self._insertEventToGoogleCalendar(self._googleService,calID,start,end,title,slots,url,id)
 
+    def DropCalendars(self):
+        service = self._ConnectToGoogleAndCreateService()
+        page_token = None
+
+        while True:
+            calendar_list = service.calendarList().list(pageToken=page_token).execute()
+            for calendar_list_entry in calendar_list['items']:
+                try:
+                    service.calendarList().delete(calendarId=calendar_list_entry['id']).execute()
+                except:
+                    pass
+            page_token = calendar_list.get('nextPageToken')
+            if not page_token:
+                break
+
+        
+
+
 
     def _addNewCalendarIfNotExists(self,service,calendarTitle):
         page_token = None
@@ -112,7 +130,7 @@ class GoogleConnector:
         return {
             'summary': summary,
             'location': self.location,
-            'description': 'Freie Plätze: '+slots +'\n'+url+'\nKursnummer: '+id,
+            'description': 'Freie Plätze: '+str(slots) +'\n'+url+'\nKursnummer: '+id,
             'start': {
                 'dateTime': starttime.isoformat(),
                 'timeZone': 'Europe/Berlin',

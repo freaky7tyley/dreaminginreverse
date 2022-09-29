@@ -22,6 +22,7 @@ if iAm is not None and myGreiKalender is None:
 
 heySiri= GoogleConnector(myOAuthPort,myOauthClientSecretFile)
 davScraper= WebclimberScraper(url)
+# heySiri.DropCalendars()
 
 soup = davScraper.getSoup()
 courseTypes = davScraper.getCourseTypes(soup)
@@ -42,6 +43,10 @@ for courseType in courseTypes:
         
         teacher= davScraper.getTeacher(course)
         availableSlots=davScraper.getAvailableSlots(course)
+        try:
+            availableSlots=int(availableSlots)
+        except:
+            continue
 
         if iAm is None or iAm == teacher:
             dates=davScraper.getDates(course)
@@ -66,17 +71,18 @@ for courseType in courseTypes:
                         parsed_date, DurationHours = davScraper.SetDateAndDurationHours(parsed_date, times)
                         
                         cId=id+'_'+str(id_suffix)
-                        print('Teacher: ',teacher)
-                        print('ID: ',cId)
-                        print('text: ',text)
-                        print('date: ',parsed_date)
-                        print('dur: ',DurationHours)
-                        print('slots: ',availableSlots)
-                        print('url: ',courseURL)
+                        print('############################')
+                        print('Teacher:\t',teacher)
+                        print('ID:\t\t',cId)
+                        print('text:\t\t',text)
+                        print('date:\t\t',parsed_date)
+                        print('dur:\t\t',DurationHours)
+                        print('slots:\t\t',availableSlots)
+                        print('url:\t\t',courseURL)
 
                 
                         if iAm is None:
-                            calendarName=teacher
+                            calendarName='Kurskalender '+teacher
                         else:
                             calendarName=myGreiKalender
 
