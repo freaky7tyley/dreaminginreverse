@@ -1,20 +1,25 @@
 #!/usr/bin/env python 
 #-*- coding: utf-8 -*-
+import os
 
 from twill.commands import *
 from datetime import datetime
+from dotenv import load_dotenv
 
 from GoogleConnector import GoogleConnector
 from WebclimberScraper import WebclimberScraper
 
+# Load all environment variables from the .env file
+load_dotenv()
+
 url='https://157.webclimber.de/de/courseBooking'
 
-iAm = 'Simon R.'#Flo H.'
+iAm = os.environ.get('I_AM')
 # hashtag umleitungsuriport oderso
-myOAuthPort=8105
-myOauthClientSecretFile="client_secret.json"
+myOAuthPort = int(os.environ.get('OAUTH_PORT'))
+myOauthClientSecretFile = os.environ.get('OAUTH_CLIENT_SECRET_FILE')
 
-myGreiKalender="cocoburgh"
+myGreiKalender = int(os.environ.get(' '))
 
 heySiri= GoogleConnector(myOAuthPort,myOauthClientSecretFile,myGreiKalender)
 davScraper= WebclimberScraper(url)
