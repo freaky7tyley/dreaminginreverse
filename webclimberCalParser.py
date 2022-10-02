@@ -11,75 +11,122 @@ from bs4 import BeautifulSoup
 import re
 import requests
 
-
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 import json
-  
-
 
 # terminal safaridriver --enable
 
-class WebclimberInternalScraper:
-    _driver=None
-    loginUrl=None
+class WebclimberCalEvent:
+    Id=None
+    Start=None
+    End=None
+    Summary=None
+    Location="DAV Kletterzentrum Landshut, Ritter-von-Schoch Str.6, 84036 Landshut"
+    Description=None
+    Url=None
+    Teacher=None
 
-    def __init__(self,loginUrl):
-        self.loginUrl=loginUrl
-    
-    def Login(self):
-        f = open('creds.json')
+class CourseEvent(WebclimberCalEvent): 
+    BookedPersons=None
+
+class WebclimberInternalScraper:
+    __driver=None
+    __webclimberCalUrl=None 
+    __settingsFile=None
+
+    def __init__(self,settingsFile):
+        self.__settingsFile=settingsFile
+
+    def Parse(self):
+        self.__login()
+
+        calEvents= self.__getCalendarEvents()
+        courseEvents=self.__updateEventsWithBookedPersons(calEvents)
+        self.__driver.close()
+
+        return courseEvents
+
+
+    def __updateEventsWithBookedPersons(self, calEvents):
+        courseEvents=[]
+
+        for event in calEvents:
+            event.__class__=CourseEvent
+            event.BookedPersons=self.__fetchTeilnehmer(event.Url)
+            event.Description=self.__getDescription(event)
+            courseEvents.append(event)
+        
+        return courseEvents
+
+
+    def __getDescription(self,event):
+        return event.BookedPersons + '\n' + 'Kurs-Id: '+event.Id + '\n' + event.Url
+
+
+    def __login(self):
+        username, password = self.__readSettingsFile()
+
+        loginUrl=self.__getLoginUrl(self.__webclimberCalUrl)
+
+        self.__driver = webdriver.Safari()
+        self.__driver.get(loginUrl)
+        self.__driver.implicitly_wait(60)
+
+        self.__driver.find_element("id", "LoginForm_username").send_keys(username)
+        self.__driver.find_element("id","LoginForm_password").send_keys(password)
+        self.__driver.find_element("name","yt0").click()
+
+        sleep(5)
+
+
+    def __readSettingsFile(self):
+        f = open(self.__settingsFile)
         data = json.load(f)
         username=data['username']
         password=data['password']
+        self.__webclimberCalUrl=data['webclimberCalUrl']
         f.close()
 
-        self.driver = webdriver.Safari()
-        self.driver.get(self.loginUrl)
-        self.driver.implicitly_wait(60)
-        self.driver.find_element("id", "LoginForm_username").send_keys(username)
-        self.driver.find_element("id","LoginForm_password").send_keys(password)
-        self.driver.find_element("name","yt0").click()
-        sleep(5)
+        return username,password
+    
 
-    def FetchTeilnehmer(self,url):
-        self.driver.get(url)
-        table = self.driver.find_element(By.ID,"yw0")
+    def __getLoginUrl(self,webclimberCalUrl):
+        return webclimberCalUrl[0:(webclimberCalUrl.find('course'))]+'login'
+    
+
+    def __fetchTeilnehmer(self,url):
+        self.__driver.get(url)
+        table = self.__driver.find_element(By.ID,"yw0")
         teil=table.text
         teilnehmer = re.search("Teilnehmer:([\s\S]*?)Teilnehmer", teil).group()
+
         return teilnehmer
 
 
-def calTest():
-    scraper=WebclimberInternalScraper('https://157.webclimber.de/de/login')
-    scraper.Login()
-    resp = urllib.request.urlopen('https://157.webclimber.de/de/course/ical/59?period=6&reminder=0&key=72cf0077ac2b67a0befc14c2278cf592')
-    data = resp.read()
+    def __getCalendarEvents(self):
+        resp = urllib.request.urlopen(self.__webclimberCalUrl)
+        data = resp.read()
 
-    cal  = Calendar.from_ical(data)
+        calEvents=[]
 
-    for event in cal.walk('vevent'):
+        cal  = Calendar.from_ical(data)
+        
+        for event in cal.walk('vevent'):
+            calEvent=WebclimberCalEvent()
+            calEvent.Start = event.get('dtstart').dt
+            calEvent.End = event.get('dtend').dt
 
-        start = event.get('dtstart').dt
-        end = event.get('dtend').dt
-        summary = event.get('summary')
-        url = event.get('url')
-        description = event.get('description')
-        trainer = event.get('organizer')
-        teilnemer=scraper.FetchTeilnehmer(url)
+            summaryData=event.get('summary').strip().rpartition(' ')
+            calEvent.Summary = summaryData[0]
+            calEvent.Id = summaryData[2]
 
-        print (start)
-        print (end)
-        print (url)
-        print (summary)
-        print (description)
-        print (trainer)
-        print (teilnemer)
-        print ('---------------------------------')
+            calEvent.Url = event.get('url')
+            calEvent.Description = ""
+            calEvent.Teacher = event.get('description')##event.get('organizer')
+            
+            calEvents.append(calEvent)
 
-
-    return
-
-calTest()
+        return calEvents

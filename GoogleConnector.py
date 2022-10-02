@@ -15,31 +15,29 @@ from googleapiclient.errors import HttpError
 class GoogleConnector:
     # If modifying these scopes, delete the file token.json.
     SCOPES = ['https://www.googleapis.com/auth/calendar.events','https://www.googleapis.com/auth/calendar']
-    location="DAV Kletterzentrum Landshut, Ritter-von-Schoch Str.6, 84036 Landshut"
 
-    _googleService=None
-    _port=None
-    _clientSecret=None
+    __googleService=None
+    __port=None
+    __clientSecret=None
 
     def __init__(self,OAuthPort,OauthClientSecretFile):
         self.googleService=None
-        self.calID=None
-        self._port=OAuthPort
-        self._clientSecret=OauthClientSecretFile
+        self.__port=OAuthPort
+        self.__clientSecret=OauthClientSecretFile
 
-    def AddGreiEventToCalendar(self,teacher,start,duration_hours,title,slots,url,id):
+
+    def AddEventToCalendar(self,calendarTitle,starttime, endtime, summary, location, description):
         
-        end = start + timedelta(hours = duration_hours)
-
-        if self._googleService == None:
-            self._googleService = self._ConnectToGoogleAndCreateService()
+        if self.__googleService == None:
+            self.__googleService = self.__connectToGoogleAndCreateService()
         
-        calID = self._addNewCalendarIfNotExists(self._googleService,teacher)
+        calID = self.__addNewCalendarIfNotExists(self.__googleService,calendarTitle)
 
-        self._insertEventToGoogleCalendar(self._googleService,calID,start,end,title,slots,url,id)
+        self.__insertOrUpdateEvent(self.__googleService,calID,starttime, endtime, summary, location, description)
+
 
     def DropCalendars(self):
-        service = self._ConnectToGoogleAndCreateService()
+        service = self.__connectToGoogleAndCreateService()
         page_token = None
 
         while True:
@@ -53,11 +51,8 @@ class GoogleConnector:
             if not page_token:
                 break
 
-        
 
-
-
-    def _addNewCalendarIfNotExists(self,service,calendarTitle):
+    def __addNewCalendarIfNotExists(self,service,calendarTitle):
         page_token = None
 
         while True:
@@ -78,13 +73,13 @@ class GoogleConnector:
         return created_calendar['id']
 
 
-    def _insertEventToGoogleCalendar(self,service,calID,starttime,endtime,summary,slots,url,id):
+    def __insertOrUpdateEvent(self,service,calID,starttime, endtime, summary, location, description):
         eventId=None
-        try:
-            eventId = self._getEventIdIfExists(service,calID,summary,id)
-        except:
-            pass
-        event = self._CreateCalEvent(starttime, endtime, summary, slots, url, id)
+        # try:  todo
+        #     eventId = self.__getEventIdIfExists(service,calID,summary,id)
+        # except:
+        #     pass
+        event = self.__createCalEvent(starttime, endtime, summary, location, description)
         
         if eventId is None:
             try:
@@ -103,8 +98,8 @@ class GoogleConnector:
             except HttpError as error:
                 print('An error occurred: %s' % error)
 
-
-    def _getEventIdIfExists(self,service,calId,summary,id):
+    #todo
+    def __getEventIdIfExists(self,service,calId,summary,id):
         now = datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
         tMax=datetime.utcnow().replace(month=datetime.now().month+3).isoformat()+ 'Z' 
         
@@ -124,13 +119,11 @@ class GoogleConnector:
         return None
 
        
-
-
-    def _CreateCalEvent(self,starttime, endtime, summary, slots, url, id):
+    def __createCalEvent(self,starttime, endtime, summary, location, description):
         return {
             'summary': summary,
-            'location': self.location,
-            'description': 'Freie Plätze: '+str(slots) +'\n'+url+'\nKursnummer: '+id,
+            'location': location,
+            'description': description,
             'start': {
                 'dateTime': starttime.isoformat(),
                 'timeZone': 'Europe/Berlin',
@@ -141,7 +134,8 @@ class GoogleConnector:
             },
             }
 
-    def _ConnectToGoogleAndCreateService(self):
+
+    def __connectToGoogleAndCreateService(self):
         creds = None
         if os.path.exists('token.json'):
             creds = Credentials.from_authorized_user_file('token.json', self.SCOPES)
@@ -151,8 +145,8 @@ class GoogleConnector:
                 creds.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(
-                    self._clientSecret, self.SCOPES)
-                creds = flow.run_local_server(port=self._port)
+                    self.__clientSecret, self.SCOPES)
+                creds = flow.run_local_server(port=self.__port)
 
             with open('token.json', 'w') as token:
                 token.write(creds.to_json())
