@@ -74,6 +74,7 @@ class GoogleConnector:
 
     def __insertOrUpdateEvent(self,service,calID,startTime, endTime, summary, location, description):
         eventId=None
+
         try: 
             eventId = self.__getEventIdIfExists(service,calID,summary,startTime,endTime)
         except Exception as e:

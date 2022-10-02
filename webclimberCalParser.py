@@ -69,7 +69,7 @@ class WebclimberInternalScraper:
 
 
     def __getDescription(self,event):
-        return event.BookedPersons + '\n' + 'Kurs-Id: '+event.Id + '\n' + event.Url
+        return event.BookedPersons + '\n' + event.Url
 
 
     def __login(self):
