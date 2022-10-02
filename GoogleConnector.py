@@ -26,14 +26,13 @@ class GoogleConnector:
         self.__clientSecret=OauthClientSecretFile
 
 
-    def AddEventToCalendar(self,calendarTitle,starttime, endtime, summary, location, description):
-        
+    def AddEventToCalendar(self,calendarTitle,startTime, endTime, summary, location, description):
         if self.__googleService == None:
             self.__googleService = self.__connectToGoogleAndCreateService()
         
         calID = self.__addNewCalendarIfNotExists(self.__googleService,calendarTitle)
 
-        self.__insertOrUpdateEvent(self.__googleService,calID,starttime, endtime, summary, location, description)
+        self.__insertOrUpdateEvent(self.__googleService,calID,startTime, endTime, summary, location, description)
 
 
     def DropCalendars(self):
@@ -73,13 +72,15 @@ class GoogleConnector:
         return created_calendar['id']
 
 
-    def __insertOrUpdateEvent(self,service,calID,starttime, endtime, summary, location, description):
+    def __insertOrUpdateEvent(self,service,calID,startTime, endTime, summary, location, description):
         eventId=None
-        # try:  todo
-        #     eventId = self.__getEventIdIfExists(service,calID,summary,id)
-        # except:
-        #     pass
-        event = self.__createCalEvent(starttime, endtime, summary, location, description)
+        try: 
+            eventId = self.__getEventIdIfExists(service,calID,summary,startTime,endTime)
+        except Exception as e:
+            print (e)
+            pass
+
+        event = self.__createCalEvent(startTime, endTime, summary, location, description)
         
         if eventId is None:
             try:
@@ -98,20 +99,24 @@ class GoogleConnector:
             except HttpError as error:
                 print('An error occurred: %s' % error)
 
-    #todo
-    def __getEventIdIfExists(self,service,calId,summary,id):
-        now = datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
-        tMax=datetime.utcnow().replace(month=datetime.now().month+3).isoformat()+ 'Z' 
-        
-        events_result = service.events().list(calendarId=calId, timeMin=now, timeMax=tMax, singleEvents=True, orderBy='startTime').execute()
-        events = events_result.get('items', [])
+    def __getEventIdIfExists(self,service,calId,summary,startTime,endTime):
+        tMin = datetime.now().isoformat() + 'Z'  # 'Z' indicates UTC time
+        tMax= datetime.max.isoformat() + 'Z' 
+       
+        try:
+            events_result = service.events().list(calendarId=calId, timeMin=tMin, timeMax=tMax, singleEvents=True, orderBy='startTime').execute()
+            events = events_result.get('items', [])
+        except Exception as e:
+            print(e)
+            raise e
 
         if not events:
-            print('Event does not exist yet.')
             return None
+
         else:
             for event in events:
-                if summary == event['summary'] and id in event['description']:
+                eventStart =datetime.fromisoformat(event['start']['dateTime'])
+                if summary == event['summary'] and startTime == eventStart:
                     found = True
                     print('Event has been found.')
                     return event['id']
@@ -119,17 +124,17 @@ class GoogleConnector:
         return None
 
        
-    def __createCalEvent(self,starttime, endtime, summary, location, description):
+    def __createCalEvent(self,startTime, endTime, summary, location, description):
         return {
             'summary': summary,
             'location': location,
             'description': description,
             'start': {
-                'dateTime': starttime.isoformat(),
+                'dateTime': startTime.isoformat(),
                 'timeZone': 'Europe/Berlin',
             },
             'end': {
-                'dateTime': endtime.isoformat(),
+                'dateTime': endTime.isoformat(),
                 'timeZone': 'Europe/Berlin',
             },
             }

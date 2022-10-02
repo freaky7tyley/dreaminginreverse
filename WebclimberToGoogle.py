@@ -12,13 +12,13 @@ from webclimberCalParser import *
 myOAuthPort=8105
 myOauthClientSecretFile="client_secret.json"
 
-myGreiKalender="cocoburgh"
+GreiKalenderPrefix="Kurskalender "
 
 heySiri= GoogleConnector(myOAuthPort,myOauthClientSecretFile)
 davScraper= WebclimberInternalScraper('creds.json')
 # heySiri.DropCalendars()
 
-courseEvents=davScraper.Parse()
+courseEvents=davScraper.ParseAll()
 
 for course in courseEvents:
-    heySiri.AddEventToCalendar(myGreiKalender,course.Start,course.End,course.Summary,course.Location,course.Description)
+    heySiri.AddEventToCalendar(GreiKalenderPrefix + course.Teacher, course.Start, course.End, course.Summary, course.Location, course.Description)

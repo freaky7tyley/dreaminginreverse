@@ -34,16 +34,22 @@ class CourseEvent(WebclimberCalEvent):
 
 class WebclimberInternalScraper:
     __driver=None
-    __webclimberCalUrl=None 
+    __webclimberCalUrls=None 
     __settingsFile=None
 
     def __init__(self,settingsFile):
         self.__settingsFile=settingsFile
 
-    def Parse(self):
-        self.__login()
+    def GetEvents(self,url):
 
-        calEvents= self.__getCalendarEvents()
+        return self.__getCalendarEvents(url)
+
+    def ParseAll(self):
+        self.__login()
+        calEvents=[]
+        for url in self.__webclimberCalUrls:
+            calEvents.extend(self.__getCalendarEvents(url))
+
         courseEvents=self.__updateEventsWithBookedPersons(calEvents)
         self.__driver.close()
 
@@ -69,25 +75,25 @@ class WebclimberInternalScraper:
     def __login(self):
         username, password = self.__readSettingsFile()
 
-        loginUrl=self.__getLoginUrl(self.__webclimberCalUrl)
+        loginUrl=self.__getLoginUrl(self.__webclimberCalUrls[0])
 
         self.__driver = webdriver.Safari()
         self.__driver.get(loginUrl)
-        self.__driver.implicitly_wait(60)
+        self.__driver.implicitly_wait(10)
 
         self.__driver.find_element("id", "LoginForm_username").send_keys(username)
         self.__driver.find_element("id","LoginForm_password").send_keys(password)
         self.__driver.find_element("name","yt0").click()
 
-        sleep(5)
-
+        sleep(5)    
+        
 
     def __readSettingsFile(self):
         f = open(self.__settingsFile)
         data = json.load(f)
         username=data['username']
         password=data['password']
-        self.__webclimberCalUrl=data['webclimberCalUrl']
+        self.__webclimberCalUrls=data['webclimberCalUrls']
         f.close()
 
         return username,password
@@ -98,16 +104,28 @@ class WebclimberInternalScraper:
     
 
     def __fetchTeilnehmer(self,url):
+
         self.__driver.get(url)
-        table = self.__driver.find_element(By.ID,"yw0")
-        teil=table.text
-        teilnehmer = re.search("Teilnehmer:([\s\S]*?)Teilnehmer", teil).group()
+        
+        # table = self.__driver.find_element(By.ID,"yw0")
+        # teil=table.text
+        teil=""
+        drt= self.__driver.find_elements(By.CLASS_NAME,"control-group")
+        self.__driver.implicitly_wait(0.1)
+        for ctrl in drt:
+            try:
+                ctrl.find_element(By.CLASS_NAME,"memberCounter")
+                teil=ctrl.text
+            except:
+                pass
+        # next(f for f in drt if f..startswith("p"))
+        return teil       
+        # teilnehmer = re.search("Teilnehmer:([\s\S]*?)Teilnehmer", teil).group()
+        # return teilnehmer
 
-        return teilnehmer
 
-
-    def __getCalendarEvents(self):
-        resp = urllib.request.urlopen(self.__webclimberCalUrl)
+    def __getCalendarEvents(self,url):
+        resp = urllib.request.urlopen(url)
         data = resp.read()
 
         calEvents=[]
@@ -125,8 +143,23 @@ class WebclimberInternalScraper:
 
             calEvent.Url = event.get('url')
             calEvent.Description = ""
-            calEvent.Teacher = event.get('description')##event.get('organizer')
+            calEvent.Teacher = event.get('organizer')#event.get('description')
             
             calEvents.append(calEvent)
 
         return calEvents
+
+
+
+# dummy=WebclimberInternalScraper('creds.json')
+# dummy.ParseAll()
+
+# for i in range(59, 200):
+#     id=str(i)
+#     calurl='https://157.webclimber.de/de/course/ical/'+id+'?period=6&reminder=0'#&key=72cf0077ac2b67a0befc14c2278cf592'
+#     try:
+#         calEvents= dummy.GetEvents(calurl)
+#         print(id +': '+calEvents[0].Teacher)
+#     except:
+#         print(id +'gibts ned')
+    
