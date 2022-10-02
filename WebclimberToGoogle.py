@@ -19,7 +19,7 @@ iAm = os.environ.get('I_AM')
 myOAuthPort = int(os.environ.get('OAUTH_PORT'))
 myOauthClientSecretFile = os.environ.get('OAUTH_CLIENT_SECRET_FILE')
 
-myGreiKalender="cocoburgh"
+myGreiKalender = int(os.environ.get(' '))
 
 heySiri= GoogleConnector(myOAuthPort,myOauthClientSecretFile,myGreiKalender)
 davScraper= WebclimberScraper(url)
