@@ -26,13 +26,13 @@ class GoogleConnector:
         self.__clientSecret=OauthClientSecretFile
 
 
-    def AddEventToCalendar(self,calendarTitle,startTime, endTime, summary, location, description):
+    def AddEventToCalendar(self,calendarTitle,startTime, endTime, summary, location, description, reminders):
         if self.__googleService == None:
             self.__googleService = self.__connectToGoogleAndCreateService()
         
         calID = self.__addNewCalendarIfNotExists(self.__googleService,calendarTitle)
 
-        self.__insertOrUpdateEvent(self.__googleService,calID,startTime, endTime, summary, location, description)
+        self.__insertOrUpdateEvent(self.__googleService,calID,startTime, endTime, summary, location, description, reminders)
 
 
     def DropCalendars(self):
@@ -72,7 +72,7 @@ class GoogleConnector:
         return created_calendar['id']
 
 
-    def __insertOrUpdateEvent(self,service,calID,startTime, endTime, summary, location, description):
+    def __insertOrUpdateEvent(self,service,calID,startTime, endTime, summary, location, description, reminders):
         eventId=None
 
         try: 
@@ -81,7 +81,7 @@ class GoogleConnector:
             print (e)
             pass
 
-        event = self.__createCalEvent(startTime, endTime, summary, location, description)
+        event = self.__createCalEvent(startTime, endTime, summary, location, description, reminders)
         
         if eventId is None:
             try:
@@ -125,8 +125,23 @@ class GoogleConnector:
         return None
 
        
-    def __createCalEvent(self,startTime, endTime, summary, location, description):
-        return {
+    def __createCalEvent(self, startTime, endTime, summary, location, description, reminders):
+        eventReminders=None
+        if len(reminders)>0:
+            eventReminders={
+            "reminders": {
+                "useDefault": False,
+                "overrides": []
+                }}
+
+            for reminder in reminders:
+                override={
+                    "method": 'popup',
+                    "minutes": reminder 
+                }
+                eventReminders['reminders']['overrides'].append(override)
+
+        event = {
             'summary': summary,
             'location': location,
             'description': description,
@@ -137,8 +152,11 @@ class GoogleConnector:
             'end': {
                 'dateTime': endTime.isoformat(),
                 'timeZone': 'Europe/Berlin',
-            },
+            },    
             }
+        if eventReminders is not None:
+            event.update(eventReminders)
+        return event
 
 
     def __connectToGoogleAndCreateService(self):
@@ -162,3 +180,54 @@ class GoogleConnector:
 
 
 
+# #test
+# class test:
+#     def createCalEvent(seld,startTime, endTime, summary, location, description,reminders):
+#         eventReminders=None
+#         if len(reminders)>0:
+#             eventReminders={
+#             "reminders": {
+#                 "useDefault": False,
+#                 "overrides": []
+#                 }}
+
+#             for reminder in reminders:
+#                 override={
+#                     "method": 'popup',
+#                     "minutes": reminder 
+#                 }
+#                 eventReminders['reminders']['overrides'].append(override)
+
+#         event = {
+#             'summary': summary,
+#             'location': location,
+#             'description': description,
+#             'start': {
+#                 'dateTime': startTime.isoformat(),
+#                 'timeZone': 'Europe/Berlin',
+#             },
+#             'end': {
+#                 'dateTime': endTime.isoformat(),
+#                 'timeZone': 'Europe/Berlin',
+#             },  
+#             # "reminders": {
+#             # "useDefault": False,
+#             # # "overrides": [
+#             # # {
+#             # #     "method": string,
+#             # #     "minutes": integer
+#             # # }
+#             # # ]
+#             # },
+#             "source": {
+#                 "url": "www.aral.de",
+#                 "title": "test"
+#             },
+#             }
+#         if eventReminders is not None:
+#             event.update(eventReminders)
+#         return event
+
+# t=test()
+# reminders=[1,2,3]
+# t.createCalEvent(datetime.now(), datetime.now(), "summary", "location", "description",reminders)

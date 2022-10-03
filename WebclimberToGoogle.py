@@ -8,7 +8,7 @@ from datetime import datetime
 from GoogleConnector import GoogleConnector
 from webclimberCalParser import *
 import pytz
-
+start=datetime.now()
 utc=pytz.UTC
 
 now = utc.localize(datetime.now()) 
@@ -30,4 +30,6 @@ for course in courseEvents:
         print("das war schon")
         continue
 
-    heySiri.AddEventToCalendar(GreiKalenderPrefix + course.Teacher, course.Start, course.End, course.Summary, course.Location, course.Description)
+    heySiri.AddEventToCalendar(GreiKalenderPrefix + course.Teacher, course.Start, course.End, course.Summary, course.Location, course.Description, course.Reminders)
+
+print("done: ", datetime.now()-start)    

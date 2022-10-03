@@ -28,27 +28,28 @@ class WebclimberCalEvent:
     Description=None
     Url=None
     Teacher=None
+    Reminders=[]
 
 class CourseEvent(WebclimberCalEvent): 
     BookedPersons=None
 
 class WebclimberInternalScraper:
     __driver=None
-    __webclimberCalUrls=None 
+    __webclimberSubscribers=None 
     __settingsFile=None
 
     def __init__(self,settingsFile):
         self.__settingsFile=settingsFile
 
-    def GetEvents(self,url):
-
-        return self.__getCalendarEvents(url)
 
     def ParseAll(self):
         self.__login()
         calEvents=[]
-        for url in self.__webclimberCalUrls:
-            calEvents.extend(self.__getCalendarEvents(url))
+        for subscriber in self.__webclimberSubscribers:
+            subscriberEvents=self.__getCalendarEvents(subscriber['calUrl'])
+            for event in subscriberEvents:
+                event.Reminders=subscriber['reminderMinutesBevore']
+            calEvents.extend(subscriberEvents)
 
         courseEvents=self.__updateEventsWithBookedPersons(calEvents)
         self.__driver.close()
@@ -75,7 +76,7 @@ class WebclimberInternalScraper:
     def __login(self):
         username, password = self.__readSettingsFile()
 
-        loginUrl=self.__getLoginUrl(self.__webclimberCalUrls[0])
+        loginUrl=self.__getLoginUrl(self.__webclimberSubscribers[0]['calUrl'])
 
         self.__driver = webdriver.Safari()
         self.__driver.get(loginUrl)
@@ -93,7 +94,7 @@ class WebclimberInternalScraper:
         data = json.load(f)
         username=data['username']
         password=data['password']
-        self.__webclimberCalUrls=data['webclimberCalUrls']
+        self.__webclimberSubscribers=data['webclimberSubscribers']
         f.close()
 
         return username,password
