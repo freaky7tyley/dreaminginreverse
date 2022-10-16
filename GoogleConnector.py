@@ -166,7 +166,7 @@ class GoogleConnector:
 
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
+                creds.refresh(Request()) #todo exception handling wenn token abgelaufen:altes loeschen, neues anfordern
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(
                     self.__clientSecret, self.SCOPES)
