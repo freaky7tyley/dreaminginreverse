@@ -1,20 +1,14 @@
 #!/usr/bin/env python 
 #-*- coding: utf-8 -*-
 
-from datetime import datetime
-import pytz
-from icalendar import Calendar, Event, vCalAddress, vText
-import urllib.request
-from twill import browser
-from twill.commands import *
-from bs4 import BeautifulSoup
-import re
-import requests
-
+from icalendar import Calendar
+# from twill.commands import *
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
+import urllib.request
 import json
+import time
 
 class WebclimberCalEvent:
     Id=None
@@ -87,7 +81,7 @@ class WebclimberInternalScraper:
         self.__driver.find_element("id","LoginForm_password").send_keys(password)
         self.__driver.find_element("name","yt0").click()
 
-        sleep(5)    
+        time.sleep(5)    
         
 
     def __readSettingsFile(self):
@@ -155,13 +149,3 @@ class WebclimberInternalScraper:
 
 dummy=WebclimberInternalScraper('creds.json')
 dummy.ParseAll()
-
-# for i in range(59, 200):
-#     id=str(i)
-#     calurl='https://157.webclimber.de/de/course/ical/'+id+'?period=6&reminder=0'#&key=72cf0077ac2b67a0befc14c2278cf592'
-#     try:
-#         calEvents= dummy.GetEvents(calurl)
-#         print(id +': '+calEvents[0].Teacher)
-#     except:
-#         print(id +'gibts ned')
-    
