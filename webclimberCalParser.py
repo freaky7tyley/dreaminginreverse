@@ -12,12 +12,9 @@ import re
 import requests
 
 from selenium import webdriver
-from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
-from webdriver_manager.chrome import ChromeDriverManager
-import json
 
-# terminal safaridriver --enable
+import json
 
 class WebclimberCalEvent:
     Id=None
@@ -37,6 +34,7 @@ class WebclimberInternalScraper:
     __driver=None
     __webclimberSubscribers=None 
     __settingsFile=None
+
 
     def __init__(self,settingsFile):
         self.__settingsFile=settingsFile
@@ -75,10 +73,13 @@ class WebclimberInternalScraper:
 
     def __login(self):
         username, password = self.__readSettingsFile()
-
         loginUrl=self.__getLoginUrl(self.__webclimberSubscribers[0]['calUrl'])
 
-        self.__driver = webdriver.Safari()
+        fireFoxOptions = webdriver.FirefoxOptions()
+        fireFoxOptions.headless=True
+
+        self.__driver = webdriver.Firefox(options=fireFoxOptions)
+
         self.__driver.get(loginUrl)
         self.__driver.implicitly_wait(10)
 
@@ -152,8 +153,8 @@ class WebclimberInternalScraper:
 
 
 
-# dummy=WebclimberInternalScraper('creds.json')
-# dummy.ParseAll()
+dummy=WebclimberInternalScraper('creds.json')
+dummy.ParseAll()
 
 # for i in range(59, 200):
 #     id=str(i)
