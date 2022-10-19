@@ -1,35 +1,54 @@
 #!/usr/bin/env python 
 #-*- coding: utf-8 -*-
 
-from calendar import calendar
-
 from datetime import datetime
-
+from pyvirtualdisplay import Display
 from GoogleConnector import GoogleConnector
 from webclimberCalParser import *
+from logging.handlers import RotatingFileHandler
+
+import logging
 import pytz
-start=datetime.now()
-utc=pytz.UTC
 
-now = utc.localize(datetime.now()) 
-
-# hashtag umleitungsuriport oderso
+logFile = '/home/pi/webclimmer/log/webclimmer.log'
 myOAuthPort=8105
-myOauthClientSecretFile="client_secret.json"
-
+myOauthClientSecretFile="/home/pi/webclimmer/dreaminginreverse/client_secret.json"
+mySettingsFile='/home/pi/webclimmer/dreaminginreverse/creds.json'
+token="/home/pi/webclimmer/dreaminginreverse/token.json"
 GreiKalenderPrefix="Kurskalender "
 
-heySiri= GoogleConnector(myOAuthPort,myOauthClientSecretFile)
-davScraper= WebclimberInternalScraper('creds.json')
-# heySiri.DropCalendars()
+log_handler = RotatingFileHandler(logFile, mode='a', maxBytes=5*1024*1024,backupCount=5, encoding=None, delay=0)
+formatter = logging.Formatter('%(asctime)s|%(name)s|%(levelname)s|%(message)s','%Y-%m-%d %H:%M:%S')
+log_handler.setFormatter(formatter)
+logger = logging.getLogger()
+logger.addHandler(log_handler)
+logger.setLevel(logging.INFO)
 
-courseEvents=davScraper.ParseAll()
+logger.info('Batman begins')
 
-for course in courseEvents:
-    if course.Start < now:
-        print("das war schon")
-        continue
+try:
+    display = Display(visible=0, size=(800, 600))
+    display.start()
 
-    heySiri.AddEventToCalendar(GreiKalenderPrefix + course.Teacher, course.Start, course.End, course.Summary, course.Location, course.Description, course.Reminders)
+    start=datetime.now()
+    utc=pytz.UTC
 
-print("done: ", datetime.now()-start)    
+    now = utc.localize(datetime.now()) 
+
+    heySiri= GoogleConnector(logger,myOAuthPort,myOauthClientSecretFile,token)
+    davScraper= WebclimberInternalScraper(logger,mySettingsFile)
+
+    # heySiri.DropCalendars()
+    logger.info("start webclimming")
+    courseEvents=davScraper.ParseAll()
+    logger.info("webclimming done")
+    for course in courseEvents:
+        if course.Start < now:
+            logger.info("das event war schon")
+            continue
+        course.Description = course.Description+ '\nStand: ' + start.strftime("%d.%m.%Y %H:%M")
+        heySiri.AddEventToCalendar(GreiKalenderPrefix + course.Teacher, course.Start, course.End, course.Summary, course.Location, course.Description, course.Reminders)
+
+    logger.info("done:"+str(datetime.now()-start))    
+except Exception:
+        logger.fatal("Shit. There is really going on some big shit!", exc_info=True)
