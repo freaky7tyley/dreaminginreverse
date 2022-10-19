@@ -1,71 +1,54 @@
 #!/usr/bin/env python 
 #-*- coding: utf-8 -*-
 
-from twill.commands import *
 from datetime import datetime
-
+from pyvirtualdisplay import Display
 from GoogleConnector import GoogleConnector
-from WebclimberScraper import WebclimberScraper
+from webclimberCalParser import *
+from logging.handlers import RotatingFileHandler
 
-url='https://157.webclimber.de/de/courseBooking'
+import logging
+import pytz
 
-iAm = 'Simon R.'#Flo H.'
-# hashtag umleitungsuriport oderso
+logFile = '/home/pi/webclimmer/log/webclimmer.log'
 myOAuthPort=8105
-myOauthClientSecretFile="client_secret.json"
+myOauthClientSecretFile="/home/pi/webclimmer/dreaminginreverse/client_secret.json"
+mySettingsFile='/home/pi/webclimmer/dreaminginreverse/creds.json'
+token="/home/pi/webclimmer/dreaminginreverse/token.json"
+GreiKalenderPrefix="Kurskalender "
 
-myGreiKalender="cocoburgh"
+log_handler = RotatingFileHandler(logFile, mode='a', maxBytes=5*1024*1024,backupCount=5, encoding=None, delay=0)
+formatter = logging.Formatter('%(asctime)s|%(name)s|%(levelname)s|%(message)s','%Y-%m-%d %H:%M:%S')
+log_handler.setFormatter(formatter)
+logger = logging.getLogger()
+logger.addHandler(log_handler)
+logger.setLevel(logging.INFO)
 
-heySiri= GoogleConnector(myOAuthPort,myOauthClientSecretFile,myGreiKalender)
-davScraper= WebclimberScraper(url)
+logger.info('Batman begins')
 
-soup = davScraper.getSoup()
-courseTypes = davScraper.getCourseTypes(soup)
+try:
+    display = Display(visible=0, size=(800, 600))
+    display.start()
 
-for courseType in courseTypes:
-    text = courseType[0]
-    amount = int(courseType[1])
-    link = courseType[2]
-    
-    courseURL = url + link.replace('/de/courseBooking','')
-    
-    if amount < 1:
-        continue 
+    start=datetime.now()
+    utc=pytz.UTC
 
-    courses =  davScraper.getCourses(link)
+    now = utc.localize(datetime.now()) 
 
-    for course in courses:
-        
-        teacher= davScraper.getTeacher(course)
-        print(teacher)
-        if iAm == teacher:
-            dates=davScraper.getDates(course)
-            print("Kurs: ",course,dates)
-            id=course[0]
-            id_suffix=0
-            
-            for date in dates:
-                
-                crapdata=date.replace(' ','').split(',')
-                parsed_date = None
-                DurationHours=0
-                
-                for myDate in crapdata:
-                    try:
-                        parsed_date = datetime.strptime(myDate, '%d.%m.%Y')
-                    except:
-                        pass
-                    if '-' in myDate:
-                        times = myDate.split('-')
-                        
-                        parsed_date, DurationHours = davScraper.SetDateAndDurationHours(parsed_date, times)
-                        
-                        cId=id+'_'+str(id_suffix)
-                        
-                        print(cId,text,parsed_date,DurationHours,courseURL)
-                    
-                        heySiri.AddGreiEventToCalendar(parsed_date,DurationHours,text,courseURL,cId)
-                        
-                        id_suffix=id_suffix+1
+    heySiri= GoogleConnector(logger,myOAuthPort,myOauthClientSecretFile,token)
+    davScraper= WebclimberInternalScraper(logger,mySettingsFile)
 
-    print('--------------------------------------------------------------')
+    # heySiri.DropCalendars()
+    logger.info("start webclimming")
+    courseEvents=davScraper.ParseAll()
+    logger.info("webclimming done")
+    for course in courseEvents:
+        if course.Start < now:
+            logger.info("das event war schon")
+            continue
+        course.Description = course.Description+ '\nStand: ' + start.strftime("%d.%m.%Y %H:%M")
+        heySiri.AddEventToCalendar(GreiKalenderPrefix + course.Teacher, course.Start, course.End, course.Summary, course.Location, course.Description, course.Reminders)
+
+    logger.info("done:"+str(datetime.now()-start))    
+except Exception:
+        logger.fatal("Shit. There is really going on some big shit!", exc_info=True)
