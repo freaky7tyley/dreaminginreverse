@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
 
+from logging import exception
 from icalendar import Calendar
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -9,7 +10,7 @@ from selenium.webdriver.chrome.options import Options
 import urllib.request
 import json
 import time
-from datetime import datetime
+from  datetime import datetime
 
 class WebclimberCalEvent:
     Id=None
@@ -69,12 +70,12 @@ class WebclimberInternalScraper:
 
     def __getDescription(self,event):
         text= event.BookedPersons + '\n' + event.Url
-        if event.Ultimatum is None:
+        if event.Ultimatum == None:
             return text
         if event.Ultimatum < datetime.now():
             text += '\nAnmeldefrist abgelaufen.' 
         else:
-            text += '\nAnmeldungen bis '+event.Ultimatum.strftime("%d.%m.%Y %H:%M")
+            text += '\nAnmeldungen bis '+str(event.Ultimatum) 
         return text
 
 
@@ -83,14 +84,9 @@ class WebclimberInternalScraper:
         loginUrl=self.__getLoginUrl(self.__webclimberSubscribers[0]['calUrl'])
         fireFoxOptions = webdriver.FirefoxOptions()
         fireFoxOptions.headless=True
-        chrome_options = Options()
-        chrome_options.add_argument("--disable-extensions")
-        chrome_options.add_argument("--disable-gpu")
-        chrome_options.add_argument("--no-sandbox") # linux only
-        chrome_options.headless = True
         try:
-            # self.__driver = webdriver.Firefox(options=fireFoxOptions)
-            self.__driver = webdriver.Chrome(options=chrome_options)
+            self.__driver = webdriver.Firefox(options=fireFoxOptions)
+
         except Exception as e:
             self.__logger.error(e)
 
@@ -135,6 +131,7 @@ class WebclimberInternalScraper:
 
     def __fetchAnmeldefrist(self,url):
         self.__driver.get(url)
+        teil=""
         drt= self.__driver.find_elements(By.CLASS_NAME,"control-group")
         self.__driver.implicitly_wait(0.1)
         for ctrl in drt:
@@ -177,3 +174,17 @@ class WebclimberInternalScraper:
     def dispose(self):
         return
         self.__driver.close()
+
+class FakeLogger:
+
+    def info(self,text):
+        print(text)
+        
+    def error(self,e):
+        print(e)
+
+logger=FakeLogger()
+creds="/Volumes/ApfelScheibe - Daten/Webclimber/creds.json"
+test=WebclimberInternalScraper(logger,creds)
+
+test.ParseAll()

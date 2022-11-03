@@ -1,0 +1,5 @@
+Beispiel Cronjob
+
+
+# m h  dom mon dow   command
+ 0,20,40  * * * * sudo python3 /home/pi/webclimmer/dreaminginreverse/WebclimberToGoogle.py
