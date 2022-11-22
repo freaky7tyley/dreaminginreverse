@@ -12,6 +12,7 @@ import pytz
 
 logFile = '/home/pi/webclimmer/log/webclimmer.log'
 myOAuthPort=8105
+myServiceaccount_client_secret='/home/pi/webclimmer/dreaminginreverse/serviceaccount_client_secret.json'
 myOauthClientSecretFile="/home/pi/webclimmer/dreaminginreverse/client_secret.json"
 mySettingsFile='/home/pi/webclimmer/dreaminginreverse/creds.json'
 mehlerSettingsFile='/home/pi/webclimmer/dreaminginreverse/mehlersettings.json'
@@ -29,17 +30,17 @@ logger.info('Batman begins')
 display = Display(visible=0, size=(800, 600))
 davScraper= WebclimberInternalScraper(logger,mySettingsFile)
 mehler = Mehler(logger,mehlerSettingsFile)
-
+Calendars=[]
 try:
     display.start()
 
     start=datetime.now()
     utc=pytz.UTC
     now = utc.localize(datetime.now()) 
-
-    heySiri= GoogleConnector(logger,myOAuthPort,myOauthClientSecretFile,token)
-    
+    heySiri= GoogleConnector(logger,myServiceaccount_client_secret)
+    # heySiri= GoogleConnector(logger,myOAuthPort,myOauthClientSecretFile,token)
     # heySiri.DropCalendars()
+    # raise
     logger.info("start webclimming")
     courseEvents=davScraper.ParseAll()
     logger.info("webclimming done")
@@ -48,8 +49,16 @@ try:
             logger.info("das event war schon")
             continue
         course.Description = course.Description+ '\nStand: ' + start.strftime("%d.%m.%Y %H:%M")
-        heySiri.AddEventToCalendar(GreiKalenderPrefix + course.Teacher, course.Start, course.End, course.Summary, course.Location, course.Description, course.Reminders)
+        calTitle=GreiKalenderPrefix + course.Teacher
 
+        if calTitle not in Calendars:
+            Calendars.append(calTitle)
+
+        heySiri.AddEventToCalendar(calTitle, course.Start, course.End, course.Summary, course.Location, course.Description, course.Reminders)
+    
+    for cal in Calendars:
+        heySiri.DropEventsFromCalendarIfNotUpdatedSince(cal,5)
+    
     logger.info("done:"+str(datetime.now()-start))    
 except Exception:
         logger.fatal("Shit. There is really going on some big shit!", exc_info=True)

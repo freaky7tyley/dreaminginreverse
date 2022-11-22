@@ -35,9 +35,8 @@ class WebclimberInternalScraper:
 
     def __init__(self,logger,settingsFile):
         self.__settingsFile=settingsFile
-        self.__logger=logger
-
-
+        self.__logger=logger    
+        
     def ParseAll(self):
         self.__login()
         calEvents=[]
